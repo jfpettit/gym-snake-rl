@@ -1,16 +1,37 @@
-from core_snake import Arena, Snake
-from single_snake import SingleSnake
-from multi_snake import MultiSnake
-from render import Renderer, RGBifier
-import numpy as np
+import gym
 
 if __name__ == '__main__':
-	env = MultiSnake(num_foods=2, add_walls=True)
-	env.reset()
-
-	action = np.random.choice(len(env.arena.DIRS), size=2)
-	for i in range(10):
-	    output = env.step(action)
-	    action = np.random.choice(len(env.arena.DIRS), size=2)
-	    env.render()
-	env.close()
+	path = 'gym_snakerl:'
+	bs16 = gym.make(path+'BasicSnake-vector-16-v0')
+	bs32 = gym.make(path+'BasicSnake-vector-32-v0')
+	bs64 = gym.make(path+'BasicSnake-vector-64-v0')
+	hs16 = gym.make(path+'HungrySnake-vector-16-v0')
+	hs32 = gym.make(path+'HungrySnake-vector-32-v0')
+	hs64 = gym.make(path+'HungrySnake-vector-64-v0')
+	ba16 = gym.make(path+'BabySnake-vector-16-v0')
+	ba32 = gym.make(path+'BabySnake-vector-32-v0')
+	ba64 = gym.make(path+'BabySnake-vector-64-v0')
+	two16 = gym.make(path+'TwoSnakes-vector-16-v0')
+	two32 = gym.make(path+'TwoSnakes-vector-32-v0')
+	two64 = gym.make(path+'TwoSnakes-vector-64-v0')
+	thr16 = gym.make(path+'ThreeSnakes-vector-16-v0')
+	thr32 = gym.make(path+'ThreeSnakes-vector-32-v0')
+	thr64 = gym.make(path+'ThreeSnakes-vector-64-v0')
+	ten16 = gym.make(path+'TenSnakes-vector-16-v0')
+	ten32 = gym.make(path+'TenSnakes-vector-32-v0')
+	ten64 = gym.make(path+'TenSnakes-vector-64-v0')
+	obsb16 = gym.make(path+'ObstacleBasicSnake-vector-16-v0')
+	obsb32 = gym.make(path+'ObstacleBasicSnake-vector-32-v0')
+	obsb64 = gym.make(path+'ObstacleBasicSnake-vector-64-v0')
+	obs216 = gym.make(path+'ObstacleTwoSnakes-vector-16-v0')
+	obs232 = gym.make(path+'ObstacleTwoSnakes-vector-32-v0')
+	obs264 = gym.make(path+'ObstacleTwoSnakes-vector-64-v0')
+	obs316 = gym.make(path+'ObstacleThreeSnakes-vector-16-v0')
+	obs332 = gym.make(path+'ObstacleThreeSnakes-vector-32-v0')
+	obs364 = gym.make(path+'ObstacleThreeSnakes-vector-64-v0')
+	obs1016 = gym.make(path+'ObstacleTenSnakes-vector-16-v0')
+	obs1032 = gym.make(path+'ObstacleTenSnakes-vector-32-v0')
+	obs1064 = gym.make(path+'ObstacleTenSnakes-vector-64-v0')
+	obshs16 = gym.make(path+'ObstacleHungrySnake-vector-16-v0')
+	obshs32 = gym.make(path+'ObstacleHungrySnake-vector-32-v0')
+	obshs64 = gym.make(path+'ObstacleHungrySnake-vector-64-v0')

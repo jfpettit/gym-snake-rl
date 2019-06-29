@@ -1,5 +1,5 @@
-from core_snake import Arena, Snake
-from render import Renderer, RGBifier
+from gym_snakerl.core.core_snake import Snake, Arena
+from gym_snakerl.core.render import Renderer, RGBifier
 
 import gym
 from gym import spaces, utils, error
@@ -14,7 +14,7 @@ class MultiSnake(gym.Env):
 }
 
 	def __init__(self, size=(15, 15), num_snakes=2, step_limit=1000, dynamic_step_limit=1000, obs_type='vector', obs_zoom=1, num_foods=1,
-	 die_on_eat=False, render_zoom=20, add_walls=False):
+	 die_on_eat=False, render_zoom=20, add_walls=False, num_obstacles=None):
 		self.SIZE=size
 		self.num_snakes = num_snakes
 		self.STEP_LIMIT = step_limit
@@ -30,11 +30,13 @@ class MultiSnake(gym.Env):
 
 		self.obs_type = obs_type
 
+		self.num_obstacles = num_obstacles
+
 		if obs_type == 'vector':
 			self.vector=True
 		else:
 			self.vector=False
-		self.arena = Arena(self.SIZE, num_snakes=num_snakes, num_foods=self.num_foods, walls=self.add_walls, vector=self.vector)
+		self.arena = Arena(self.SIZE, num_snakes=num_snakes, num_foods=self.num_foods, add_walls=self.add_walls, vector=self.vector, num_obstacles=num_obstacles)
 
 		self.obs_type = obs_type
 		if self.obs_type == 'raw':
@@ -46,7 +48,7 @@ class MultiSnake(gym.Env):
 		    # Only 2 layers here, food and snek
 			self.observation_space = spaces.Box(low=0, high=255, shape=(self.SIZE[0]*obs_zoom, self.SIZE[1]*obs_zoom, 2), dtype=np.uint8)
 		elif self.obs_type == 'vector':
-			self.observation_space = spaces.Box(low=0, high=np.inf, shape=(10+self.num_foods,), dtype=np.uint8)
+			self.observation_space = spaces.Box(low=0, high=np.inf, shape=(7+self.num_foods,), dtype=np.uint8)
 		else:
 			raise(Exception('Unrecognized observation mode.'))
 
@@ -54,6 +56,9 @@ class MultiSnake(gym.Env):
 
 		self.RENDER_ZOOM = render_zoom
 		self.renderer = None
+
+	def randomize_map(self):
+		self.arena.randomize_map()
 
 	def step(self, actions):
 		if self.is_alive is None or not any (self.is_alive):
@@ -73,7 +78,7 @@ class MultiSnake(gym.Env):
 		self.is_alive = [True] * self.num_snakes
 		self.hunger = [0]*self.num_snakes
 
-		self.arena = Arena(self.SIZE, num_snakes=self.num_snakes, num_foods=self.num_foods, walls=self.add_walls, vector=self.vector)
+		self.arena = Arena(self.SIZE, num_snakes=self.num_snakes, num_foods=self.num_foods, add_walls=self.add_walls, vector=self.vector, num_obstacles=self.num_obstacles)
 		return self._get_state()
 
 	def seed(self, seed):
