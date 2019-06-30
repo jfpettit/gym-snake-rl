@@ -10,9 +10,9 @@ from gym_snakerl.core.render import Renderer, RGBifier
 class SingleSnake(gym.Env):
 	metadata = {
 	'render.modes' : ['human', 'rgb_array'],
-	'observation.types' : ['vector', 'raw', 'rgb', 'layered']
+	'observation.types' : ['big_vector', 'small_vector', 'raw', 'rgb', 'layered']
 	}
-	def __init__(self, size=(15, 15), step_limit=1000, dynamic_step_limit=1000, obs_type='vector', obs_zoom=1, num_foods=1,
+	def __init__(self, size=(15, 15), step_limit=1000, dynamic_step_limit=1000, obs_type='small_vector', obs_zoom=1, num_foods=1,
 	 die_on_eat=False, render_zoom=20, add_walls=False, num_obstacles=None):
 		self.SIZE=size
 		self.STEP_LIMIT = step_limit
@@ -27,11 +27,16 @@ class SingleSnake(gym.Env):
 
 		self.num_obstacles = num_obstacles
 
-		if obs_type == 'vector':
-			self.vector=True
-		else:
-			self.vector=False
-		self.arena = Arena(self.SIZE, num_foods=self.num_foods, add_walls=self.add_walls, vector=self.vector, num_obstacles=num_obstacles)
+		if obs_type == 'small_vector':
+			self.small_vector=True
+			self.big_vector=False
+
+		elif obs_type == 'big_vector':
+			self.big_vector=True
+			self.small_vector=False
+
+		self.arena = Arena(self.SIZE, num_foods=self.num_foods, add_walls=self.add_walls, small_vector=self.small_vector, 
+			big_vector=self.big_vector, num_obstacles=self.num_obstacles)
 
 		self.obs_type = obs_type
 		if self.obs_type == 'raw':
@@ -40,10 +45,12 @@ class SingleSnake(gym.Env):
 		    self.observation_space = spaces.Box(low=0, high=255, shape=(self.SIZE[0]*obs_zoom, self.SIZE[1]*obs_zoom, 3), dtype=np.uint8)
 		    self.RGBify = RGBifier(self.SIZE, zoom_factor = obs_zoom, players_colors={})
 		elif self.obs_type == 'layered':
-		    # Only 2 layers here, food and snek
+		    # Only 2 layers here, food and snake
 			self.observation_space = spaces.Box(low=0, high=255, shape=(self.SIZE[0]*obs_zoom, self.SIZE[1]*obs_zoom, 2), dtype=np.uint8)
-		elif self.obs_type == 'vector':
-			self.observation_space = spaces.Box(low=0, high=np.inf, shape=(7+self.num_foods,), dtype=np.uint8)
+		elif self.obs_type == 'small_vector':
+			self.observation_space = spaces.Box(low=0, high=np.inf, shape=((10 + self.num_foods),), dtype=np.uint8)
+		elif self.obs_type == 'big_vector':
+			self.observation_space = spaces.Box(low=0, high=np.inf, shape=(self.arena.arena.size,), dtype=np.uint8)
 		else:
 			raise(Exception('Unrecognized observation mode.'))
 
@@ -82,7 +89,8 @@ class SingleSnake(gym.Env):
 		self.hunger = 0
 		self.is_alive = True
 
-		self.arena = Arena(self.SIZE, num_foods=self.num_foods, add_walls=self.add_walls, vector=self.vector, num_obstacles=self.num_obstacles)
+		self.arena = Arena(self.SIZE, num_foods=self.num_foods, add_walls=self.add_walls, small_vector=self.small_vector, 
+			big_vector=self.big_vector, num_obstacles=self.num_obstacles)
 		return self._get_state()
 
 	def seed(self, seed):
@@ -98,7 +106,9 @@ class SingleSnake(gym.Env):
 			return s
 		elif self.obs_type == 'raw':
 			return self.arena.get_obs()
-		elif self.obs_type == 'vector':
+		elif self.obs_type == 'small_vector':
+			return self.arena.get_obs()
+		elif self.obs_type == 'big_vector':
 			return self.arena.get_obs()
 
 	def render(self, mode='human', close=False):

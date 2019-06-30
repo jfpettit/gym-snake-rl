@@ -37,7 +37,8 @@ class Snake:
 
 class Arena:
     DIRS = [np.array([-1,0]), np.array([0,1]), np.array([1,0]), np.array([0,-1])]
-    def __init__(self, size=(15, 15), num_snakes=1, num_foods=1, num_obstacles=None, add_walls=False, vector=True, rew_func=None, block_size_limit=None):
+    def __init__(self, size=(15, 15), num_snakes=1, num_foods=1, num_obstacles=None, add_walls=False, small_vector=True, big_vector=False,
+        rew_func=None, block_size_limit=None, potential_based_rewards=False):
         self.die_reward = -1.
         self.move_reward = 0.
         self.eat_reward = 1.
@@ -48,7 +49,8 @@ class Arena:
 
         self.food = 64
         self.wall = 255
-        self.vector = vector
+        self.small_vector = small_vector
+        self.big_vector = big_vector
 
         self.num_snakes = num_snakes
         self.num_foods = num_foods
@@ -56,6 +58,7 @@ class Arena:
         self.size = size
         self.arena = np.zeros(self.size)
         self.add_walls = add_walls
+        self.potential_based_rewards = potential_based_rewards
 
         if add_walls:
             self.arena[0, :] = self.wall
@@ -71,6 +74,9 @@ class Arena:
             snake = self.register_snake()
 
         self.put_food(num_foods = num_foods)
+
+        if self.potential_based_rewards:
+            self.og_dists = [np.array([euclidean(snake.body[0], i) for i in self.food_locs]).mean() for snake in self.snakes]
 
         if num_obstacles is not None:
             self.block_size_limit = block_size_limit
@@ -142,22 +148,6 @@ class Arena:
             position = random.choice(list(self.available_posns))
 
         start_direction_idxs = [Snake.DIRS[0], Snake.DIRS[1], Snake.DIRS[2], Snake.DIRS[3]]
-        #new_snakes = [Snake(100 + 2 * len(self.snakes), position, i, snakesize) for i in range(len(start_direction_idxs))]
-        
-        #if len(new_snakes) == 0:
-        #   for i in range(100):
-        #       position = random.choice(list(self.available_posns))
-        #       while position in self.snakes:
-        #           position = random.choice(list(self.available_posns))
-
-        #       start_direction_idxs = [Snake.DIRS[0], Snake.DIRS[1], Snake.DIRS[2], Snake.DIRS[3]]
-        #       new_snakes = [Snake(100 + 2 * len(self.snakes), position, i, snakesize) for i in range(len(start_direction_idxs))]
-        #       for i in range(len(new_snakes)):
-        #           for j in range(len(new_snakes[i].body)):
-        #               if self.arena[new_snakes[i].body[j][0], new_snakes[i].body[j][1]] == 255:
-        #                   del(i)
-        #       if len(new_snakes) != 0:
-        #           break
         start_direction_idx = random.randrange(len(start_direction_idxs))
         new_snake = Snake(100 + 2 * len(self.snakes), position, start_direction_idx, snakesize)
         self.snakes.append(new_snake)
@@ -173,6 +163,9 @@ class Arena:
             available_posns -= set(snake.body)
 
         for _ in range(num_foods):
+            for i in range(len(self.food_locs)):
+                if self.arena[self.food_locs[i][0], self.food_locs[i][1]] != self.food:
+                    del self.food_locs[i]
             pos_choice = random.choice(list(available_posns))
             while self.arena[pos_choice[0], pos_choice[1]] != 0:
                 pos_choice = random.choice(list(available_posns))
@@ -193,17 +186,37 @@ class Arena:
         obs = []
         # include squares around head for observations. Nothing crazy, but enough to be able to see if it is
         # going to hit itself or another snake or a wall. So like being able to see one square around itself
-        if self.vector:
-            for snake in self.get_alive_snakes():
+        if self.small_vector:
+            if len(self.get_alive_snakes()) == 1:
+                snake = self.get_alive_snakes()[0]
                 hl1, hl2 = snake.body[0][0], snake.body[0][1]
 
                 around_head = (self.arena[hl1+1, hl2-1], self.arena[hl1+1, hl2], self.arena[hl1+1, hl2+1],
-                    self.arena[hl1, hl2-1], self.arena[hl1, hl2], self.arena[hl1, hl2 + 1])
+                    self.arena[hl1, hl2-1], self.arena[hl1, hl2], self.arena[hl1, hl2 + 1],
+                    self.arena[hl1-1, hl2-2], self.arena[hl1-1, hl2], self.arena[hl1-1, hl2+1])
                 length = len(snake.body)
-                #dist_from_food = np.array([euclidean(snake.body[0], i) for i in self.food_locs]).mean()
-                dist_from_food = np.array([euclidean(snake.body[0], i) for i in self.food_locs])
-                obs.append((*around_head, length, *dist_from_food))
-            return obs
+                dist_from_food = [euclidean(snake.body[0], i) for i in self.food_locs]
+                return (*around_head, length, *dist_from_food)
+            else:
+                for snake in self.get_alive_snakes():
+                    hl1, hl2 = snake.body[0][0], snake.body[0][1]
+
+                    around_head = (self.arena[hl1+1, hl2-1], self.arena[hl1+1, hl2], self.arena[hl1+1, hl2+1],
+                        self.arena[hl1, hl2-1], self.arena[hl1, hl2], self.arena[hl1, hl2 + 1])
+                    length = len(snake.body)
+                    dist_from_food = [euclidean(snake.body[0], i) for i in self.food_locs]
+                    obs.append((*around_head, length, *dist_from_food))
+                return tuple(obs)
+        elif self.big_vector:
+            obs = self.render_obs()
+            if len(self.get_alive_snakes()) == 1:
+                return obs.flatten()
+            else:
+                obs = []
+                for snake in self.get_alive_snakes():
+                    obs.append(tuple(self.render_obs().flatten()))
+                return obs
+
         else:
             return self.render_obs()
 
@@ -211,6 +224,9 @@ class Arena:
         return not (0 <= loc[0] < self.size[0]) or not(0 <= loc[1] < self.size[1]) or self.arena[loc[0], loc[1]] == self.wall
 
     def move_snake(self, actions):
+        if type(actions) is not list and type(actions) is not np.ndarray:
+            actions = [actions]
+        actions = list(actions)
         rewards = [0] * len(self.snakes)
         dones = []
         new_food_needed = 0
@@ -239,7 +255,14 @@ class Arena:
                 rewards[i] = self.eat_reward
 
             elif snake.is_alive:
-                rewards[i] = self.move_reward
+                if self.potential_based_rewards:
+                    current_dist = np.array([euclidean(snake.body[0], i) for i in self.food_locs]).mean()
+                    if current_dist < self.og_dists[i]:
+                       rewards[i] = 0.01 * abs(current_dist-self.og_dists[i])
+                    elif current_dist >= self.og_dists[i]:
+                        rewards[i] = 0.01 * abs(current_dist-self.og_dists[i])
+                else:
+                    rewards[i] = 0.
 
         dones = [not snake.is_alive for snake in self.snakes]
         rewards = [r if snake.is_alive else self.die_reward for r, snake in zip(rewards, self.snakes)]
