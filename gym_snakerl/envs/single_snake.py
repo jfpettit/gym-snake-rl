@@ -50,7 +50,7 @@ class SingleSnake(gym.Env):
 		elif self.obs_type == 'small_vector':
 			self.observation_space = spaces.Box(low=0, high=np.inf, shape=((10 + self.num_foods),), dtype=np.uint8)
 		elif self.obs_type == 'big_vector':
-			self.observation_space = spaces.Box(low=0, high=np.inf, shape=(self.arena.arena.size,), dtype=np.uint8)
+			self.observation_space = spaces.Box(low=0, high=np.inf, shape=(self.arena.arena.size+1+self.num_foods,), dtype=np.uint8)
 		else:
 			raise(Exception('Unrecognized observation mode.'))
 

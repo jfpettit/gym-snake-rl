@@ -38,7 +38,7 @@ class Snake:
 class Arena:
     DIRS = [np.array([-1,0]), np.array([0,1]), np.array([1,0]), np.array([0,-1])]
     def __init__(self, size=(15, 15), num_snakes=1, num_foods=1, num_obstacles=None, add_walls=False, small_vector=True, big_vector=False,
-        rew_func=None, block_size_limit=None, potential_based_rewards=False):
+        rew_func=None, block_size_limit=None, potential_based_rewards=False, gamma=.99):
         self.die_reward = -1.
         self.move_reward = 0.
         self.eat_reward = 1.
@@ -59,6 +59,7 @@ class Arena:
         self.arena = np.zeros(self.size)
         self.add_walls = add_walls
         self.potential_based_rewards = potential_based_rewards
+        self.gamma=gamma
 
         if add_walls:
             self.arena[0, :] = self.wall
@@ -210,11 +211,16 @@ class Arena:
         elif self.big_vector:
             obs = self.render_obs()
             if len(self.get_alive_snakes()) == 1:
-                return obs.flatten()
+                snake = self.get_alive_snakes()[0]
+                dist_from_food = [euclidean(snake.body[0], i) for i in self.food_locs]
+                length = len(snake.body)
+                return (*obs.flatten(), length, *dist_from_food)
             else:
                 obs = []
                 for snake in self.get_alive_snakes():
-                    obs.append(tuple(self.render_obs().flatten()))
+                    dist_from_food = [euclidean(snake.body[0], i) for i in self.food_locs]
+                    length = len(snake.body)
+                    obs.append((*self.render_obs().flatten(), length, *dist_from_food))
                 return obs
 
         else:
@@ -256,11 +262,11 @@ class Arena:
 
             elif snake.is_alive:
                 if self.potential_based_rewards:
-                    current_dist = np.array([euclidean(snake.body[0], i) for i in self.food_locs]).mean()
+                    current_dist = np.array([euclidean(snake.body[0], i) for i in self.food_locs])
                     if current_dist < self.og_dists[i]:
-                       rewards[i] = 0.01 * abs(current_dist-self.og_dists[i])
+                       rewards[i] = 0.01 * abs(self.gamma*current_dist-self.og_dists[i])
                     elif current_dist >= self.og_dists[i]:
-                        rewards[i] = 0.01 * abs(current_dist-self.og_dists[i])
+                        rewards[i] = 0.01 * abs(self.gamma*current_dist-self.og_dists[i])
                 else:
                     rewards[i] = 0.
 
