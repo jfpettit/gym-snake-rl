@@ -1,7 +1,0 @@
-README.md
-setup.py
-gym_snakerl.egg-info/PKG-INFO
-gym_snakerl.egg-info/SOURCES.txt
-gym_snakerl.egg-info/dependency_links.txt
-gym_snakerl.egg-info/requires.txt
-gym_snakerl.egg-info/top_level.txt
